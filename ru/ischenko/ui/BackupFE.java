@@ -1,7 +1,5 @@
 package ru.ischenko.ui;
 
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.io.BufferedReader;
@@ -23,13 +21,14 @@ import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 import javax.swing.SwingWorker;
 
-public class MyFrame  extends JFrame{
+public class BackupFE  extends JFrame{
+	private static final long serialVersionUID = 2201590917822874574L;
 	private final static String DEFAULT_COMPRESSION	= "1";
 	private final static String STATUS_IDLE 		= "Ready";
 	private final static String STATUS_DONE 		= "Backup finished";
-	private final static String STATUS_ERROR 		= "!Error ";
+	private final static String STATUS_ERROR 		= "Error: ";
 	private final static String STATUS_WORKING 		= "Backup in progress...";
-	private 			 String scriptPath 			= "";
+	private	String scriptPath = "";
 	public String getScriptPath() {
 		return scriptPath;
 	}
@@ -51,7 +50,6 @@ public class MyFrame  extends JFrame{
 			);
 		}
 	}
-	private static final long serialVersionUID = 2201590917822874574L;
 	private JLabel			gLabel1, gLabel2, gLabel3, gStatusLabel;
 	private JTextField		gObject, gDestination, gCompression;
 	private JButton			gGo, gQuit;
@@ -73,30 +71,7 @@ public class MyFrame  extends JFrame{
 		gStatusLabel.setText(string);
 	}
 	///////////////////////////////
-	SwingWorker<Integer,Void> worker = new SwingWorker<Integer, Void>(){
-		@Override
-		public Integer doInBackground() throws Exception {
-			// TODO: add pre-launch check for all parameters
-			Process p = null;
-			ProcessBuilder pB = new ProcessBuilder(getScriptPath(), gCompression.getText(), gObject.getText()+"/", gDestination.getText()+"/");
-			try {
-				p = pB.start();
-			} catch (IOException e1) {
-				e1.printStackTrace();
-			};
-			while (p.isAlive()) {
-				TimeUnit.MILLISECONDS.sleep(500);
-			}
-			if (p.exitValue() == 0) setStatus(STATUS_DONE);
-			else setStatus(STATUS_ERROR+p.exitValue());
-			switchControls(true);
-			gProgBar.setIndeterminate(false);
-			return p.exitValue();
-		}
-	};
-	///////////////////////////////
-		
-	public MyFrame() {
+	public BackupFE() {
 		super		("Backup frontend");
 		try {
 			this.loadScriptPath();
@@ -150,7 +125,7 @@ public class MyFrame  extends JFrame{
 		///////////////////////////////
 		//action handling VVV//////////		
 		///////////////////////////////
-		gObject		.addMouseListener(new MouseListener() {
+		gObject.addMouseListener(new MouseListener() {
 			@Override
 			public void mouseReleased(MouseEvent e) {
 				if (e.getClickCount() == 2 && !e.isConsumed()) {
@@ -204,14 +179,40 @@ public class MyFrame  extends JFrame{
 			}
 		});
 		///////////////////////////////
-		gGo			.addActionListener(new ActionListener(){
-	     	public void actionPerformed (ActionEvent ae) {
-				gProgBar.setIndeterminate(true);
-				switchStatus(true);
-				switchControls(false);
-				worker.execute();
-	     	}		
-	    });
+		gGo.addActionListener(event -> {
+			new SwingWorker<Integer, Void>(){
+				@Override
+				public Integer doInBackground() throws Exception {
+					if (!(getScriptPath().length() == 0)) {
+						if (!(gCompression.getText().length() == 0)) { 
+							if (!(gObject.getText().length() == 0)) {
+								if (!(gDestination.getText().length() == 0)) {
+									gProgBar.setIndeterminate(true);
+									switchStatus(true);
+									switchControls(false);
+									Process p = null;
+									ProcessBuilder pB = new ProcessBuilder(getScriptPath(), gCompression.getText(), gObject.getText(), gDestination.getText());
+									try {
+										p = pB.start();
+									} catch (IOException e1) {
+										e1.printStackTrace();
+									};
+									while (p.isAlive()) {
+										TimeUnit.MILLISECONDS.sleep(333);
+									}
+									if (p.exitValue() == 0) setStatus(STATUS_DONE);
+									else setStatus(STATUS_ERROR+p.exitValue());
+									switchControls(true);
+									gProgBar.setIndeterminate(false);
+									p.destroy();
+									return p.exitValue();
+								} else { setStatus(STATUS_ERROR+102); return 102; }
+							} else { setStatus(STATUS_ERROR+101); return 101; }
+						} else{ setStatus(STATUS_ERROR+103); return 103; }
+					} else { setStatus(STATUS_ERROR+100); return 100; }
+				}
+			}.execute();
+		});
 		///////////////////////////////
 		gQuit	.addActionListener(event -> System.exit(0));
 		///////////////////////////////
@@ -227,8 +228,7 @@ public class MyFrame  extends JFrame{
 		this	.setVisible(true);
 	}
 	public static void main(String[] args) {
-		@SuppressWarnings("unused")
-		MyFrame f = new MyFrame();
+		new BackupFE();
 	}
 }
 
